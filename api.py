@@ -61,6 +61,29 @@ class SurviveAPI(remote.Service):
         #taskqueue.add(url='/tasks/cache_average_attempts')
         return game.to_form('Good luck playing Guess a Number!')
 
+   @endpoints.method(message_types.VoidMessage, InventoryForm,
+            path='inventory', http_method='GET', name='getInventory')
+    def getInventory(self, request):
+        """Return user inventory."""
+        return self._doInventory()
+
+    def _doInventory(self, save_request=None):
+        flint = 1
+        grass = 2
+        boulder = 5
+        inven= Inventory(flint = flint, grass=grass, boulder=boulder)
+        print "Dude this is great!"
+        print inven
+        inven.put()
+        return self._copyInvenToForm(inven)
    
+    #This is not sending the output to the form.
+    def _copyInvenToForm(self,inven):
+        pf = InventoryForm()
+        for field in pf.all_fields():
+            if hasattr(inven, field.name):
+                setattr(pf, field.name, getattr(inven, field.name))
+        pf.check_initialized()
+        return pf
 
 api = endpoints.api_server([SurviveAPI])
