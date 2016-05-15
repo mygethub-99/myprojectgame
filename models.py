@@ -2,6 +2,8 @@ import random
 from datetime import date
 from protorpc import messages
 from google.appengine.ext import ndb
+from google.appengine.ext import db
+import pickle
 
 
 class User(ndb.Model):
@@ -11,23 +13,45 @@ class User(ndb.Model):
     wins = ndb.IntegerProperty(default=0)
     total_played = ndb.IntegerProperty(default=0)
 
+#Response message form for user creation
+#Sent by the return StringMessage statement in def create_user
 class StringMessage(messages.Message):
     """StringMessage-- outbound (single) string message"""
-    message = messages.StringField(1, required=True)   
+    message = messages.StringField(1)
 
 
-class UserForm(messages.Message):
-    """User Form"""
-    name = messages.StringField(1, required=True)
-    email = messages.StringField(2)
-    wins = messages.IntegerField(3, required=True)
-    total_played = messages.IntegerField(4, required=True)
-    win_percentage = messages.FloatField(5, required=True)
 
+#Upload items list to ndb
+class Inventory(ndb.Model):
+    flint = ndb.IntegerProperty(default=0)
+    grass = ndb.IntegerProperty(default=0)
+    hay = ndb.IntegerProperty(default=0)
+    log = ndb.IntegerProperty(default=0)
+    sapling = ndb.IntegerProperty(default=0)
+    twig = ndb.IntegerProperty(default=0)
+    boulder = ndb.IntegerProperty(default=0)
+    pickaxe = ndb.IntegerProperty(default=0)
+    axe = ndb.IntegerProperty(default=0)
+    firepit = ndb.IntegerProperty(default=0)
+    tent = ndb.IntegerProperty(default=0)
+    torch = ndb.IntegerProperty(default=0)
+    user = ndb.KeyProperty(required=True, kind='User')
 
-class UserForms(messages.Message):
-    """Container for multiple User Forms"""
-    items = messages.MessageField(UserForm, 1, repeated=True)
+#This is the output response form after inventory list if created.
+class InventoryForm(messages.Message):
+    """InventoryForm -- List of stuff for survival"""
+    flint = messages.IntegerField(1)
+    grass = messages.IntegerField(2)
+    boulder = messages.IntegerField(3)
+    hay = messages.IntegerField(4)
+    user = messages.StringField(5)
+
+#This is the input form used to create a new inventory list.
+class NewInventList(messages.Message):
+    """Used to create a new game"""
+    user_name = messages.StringField(1, required=True)
+    
+    
 
 class Game(ndb.Model):
     """Game object"""
