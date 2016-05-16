@@ -12,7 +12,7 @@ from models import User, Game, NewGameForm, Inventory
 from models import StringMessage, GameForm, InventoryForm
 from models import NewInventList
 from utils import get_by_urlsafe, check_winner, check_full
-from dict_list import items, craft, commands, defaults, loadInventory
+from dict_list import items, craft, commands, defaults
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
 NEW_INVENT_LIST = endpoints.ResourceContainer(NewInventList)
@@ -60,6 +60,7 @@ class SurviveAPI(remote.Service):
         #"""Return user inventory."""
         #return self._doInventory()
 
+#Need to check it there is already one for this player!!!!!!!!!!!
     @endpoints.method(request_message= NEW_INVENT_LIST, response_message=InventoryForm, path='inventory', http_method='POST', name='getInventory')
     def _doInventory(self, request):
        
@@ -67,13 +68,9 @@ class SurviveAPI(remote.Service):
         user = User.query(User.name == request.user_name).get()
         if not user:
             raise endpoints.NotFoundException('A User with that name does not exist!')
-        invent= Inventory(user = user.key, flint = items.get("flint"), grass=items.get("grass"), boulder=items.get("boulder"), hay = items.get("hay"))
+        invetowner = 
+        invent= Inventory(user = user.key, flint = items.get("flint"), grass=items.get("grass"), boulder=items.get("boulder"), hay = items.get("hay"), tree = items.get("tree"), sapling = items.get("sapling"))
 
-        #invent = ()
-        #inven = loadInventory(invent)
-        #inven =invent
-        print "Dude this is great!"
-        print invent
         invent.put()
         return self._copyInvenToForm(invent)
    
@@ -98,6 +95,7 @@ class SurviveAPI(remote.Service):
         if not user:
             raise endpoints.NotFoundException(
                     'A User with that name does not exist!')
+        invenlist = self._inventlist(request)
         try:
             game = Game.new_game(user.key)
         except ValueError:
@@ -116,6 +114,15 @@ class SurviveAPI(remote.Service):
         #else:
             #game.put()
             #return game.to_form(msg)
+    def _inventlist(self, request):
+       
+        user = User.query(User.name == request.user_name).get()
+        if not user:
+            raise endpoints.NotFoundException('A User with that name does not exist!')
+        invent= Inventory(user = user.key, flint = items.get("flint"), grass=items.get("grass"), boulder=items.get("boulder"), hay = items.get("hay"), tree = items.get("tree"), sapling = items.get("sapling"))
+
+        invent.put()
+        return self._copyInvenToForm(invent)
     
     # Not user this yet memcache yet.
     @endpoints.method(response_message=StringMessage,
