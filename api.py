@@ -10,12 +10,13 @@ from google.appengine.api import taskqueue
 
 from models import User, Game, NewGameForm, Inventory
 from models import StringMessage, GameForm, InventoryForm
-from models import NewInventList
+from models import NewInventList, checkInventory
 from utils import get_by_urlsafe, check_winner, check_full
 from dict_list import items, craft, commands, defaults
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
 NEW_INVENT_LIST = endpoints.ResourceContainer(NewInventList)
+INVENT_CHECK = endpoints.ResourceContainer(checkInventory)
 
 #GET_GAME_REQUEST = endpoints.ResourceContainer(
         #urlsafe_game_key=messages.StringField(1),)
@@ -30,12 +31,7 @@ MEMCACHE_INVENT_CHECK = 'INVENT_CHECK'
 @endpoints.api(name='survive', version='v1')
 class SurviveAPI(remote.Service):
     """Game API"""
-    @endpoints.method(request_message=USER_REQUEST,
-                      response_message=StringMessage,
-                      path='user',
-                      #This is the name that appears in the api
-                      name='create_user',
-                      http_method='POST') 
+     
    
     def create_user(self, request):
         """Create a User. Requires a unique username"""
@@ -55,26 +51,24 @@ class SurviveAPI(remote.Service):
         #This just returns a message for response at bottom of API
         #screen.
     
-    @endpoints.method(request_message= NEW_INVENT_LIST, response_message=InventoryForm, path='inventory', http_method='POST', name='getInventory')
-    #def getInventory(self, request):
-        #"""Return user inventory."""
-        #return self._doInventory()
+   
 
 #Need to check it there is already one for this player!!!!!!!!!!!
     @endpoints.method(request_message= NEW_INVENT_LIST, response_message=InventoryForm, path='inventory', http_method='POST', name='getInventory')
     def _doInventory(self, request):
        
-        #inven= Inventory(flint = items.get("flint"), grass=items.get("grass"), boulder=items.get("boulder"), hay = items.get("hay"))
         user = User.query(User.name == request.user_name).get()
         if not user:
             raise endpoints.NotFoundException('A User with that name does not exist!')
-        invetowner = 
-        invent= Inventory(user = user.key, flint = items.get("flint"), grass=items.get("grass"), boulder=items.get("boulder"), hay = items.get("hay"), tree = items.get("tree"), sapling = items.get("sapling"))
+        
+        invent= Inventory(name=user.name, user = user.key, flint = items.get("flint"), grass=items.get("grass"), boulder=items.get("boulder"), hay = items.get("hay"), tree = items.get("tree"), sapling = items.get("sapling"))
 
         invent.put()
         return self._copyInvenToForm(invent)
    
     #This is not sending the output to the form.
+    #Since I added the inventory create function to the new
+    #game function, this form may be going away. Sorry!
     def _copyInvenToForm(self,inven):
         pf = InventoryForm()
         for field in pf.all_fields():
@@ -106,25 +100,66 @@ class SurviveAPI(remote.Service):
         # This operation is not needed to complete the creation of a new game
         # so it is performed out of sequence.
         #taskqueue.add(url='/tasks/cache_average_attempts')
-        return game.to_form('Good luck playing Guess a Number!')
+        return game.to_form('Prepare to test your survival skills!')
 
         #if game.attempts_remaining < 1:
             #game.end_game(False)
             #return game.to_form(msg + ' Game over!')
         #else:
-            #game.put()
+            #game.put()i
             #return game.to_form(msg)
+
+
+    #Pulls a property value of inventory.
+    @endpoints.method(request_message=INVENT_CHECK,
+                      response_message=StringMessage,
+                      path='invencheck',
+                      #This is the name that appears in the api
+                      name='check_items',
+                      http_method='POST')
+    def checkInventory(self, request):
+        #itemname = request
+        # Take the input user name and pulls the user info from User Class
+        username = User.query(User.name == request.user_name).get()
+        #Pulls inventory list from Inventory class = user key.
+        chklist = Inventory.query( Inventory.user == username.key).get()
+        if not chklist:
+            raise endpoints.NotFoundException(
+                    'This user does not have any Inventory')
+        
+        if username.key == chklist.user:
+            placeholder = chklist.boulder
+        #itemlist =(" You have {}  of {}".format(itemcount, itemname))
+            return StringMessage(message=' {} '.format(
+                placeholder))
+
+
+
+
+       
+
+    #Used by NewGame to check if old inventory list belongs to user deletes it.
     def _inventlist(self, request):
        
         user = User.query(User.name == request.user_name).get()
-        if not user:
-            raise endpoints.NotFoundException('A User with that name does not exist!')
-        invent= Inventory(user = user.key, flint = items.get("flint"), grass=items.get("grass"), boulder=items.get("boulder"), hay = items.get("hay"), tree = items.get("tree"), sapling = items.get("sapling"))
+        check_invent = Inventory.query(Inventory.name == request.user_name).get()
+        
+        #Deletes the inventory list and throw message.    
+        if check_invent:
+            check_invent.key.delete()
+            
+            raise endpoints.NotFoundException(
+                    'User Already has Inventory List. Inventory has been deleted! Try Creating the game again please')
+
+        #thereyet = Inventory.query(ancestor = ndb.Key(User, name)
+        #userkey = ndb.Key(User, name = request.user_name).get() 
+        
+        invent= Inventory(name = user.name, user = user.key, flint = items.get("flint"), grass=items.get("grass"), boulder=items.get("boulder"), hay = items.get("hay"), tree = items.get("tree"), sapling = items.get("sapling"))
 
         invent.put()
-        return self._copyInvenToForm(invent)
+        #return self._copyInvenToForm(invent)
     
-    # Not user this yet memcache yet.
+    # Not user this yet memcache yet. 
     @endpoints.method(response_message=StringMessage,
                       path='inventory/check',
                       name='see_what_is_in_Inventory',
