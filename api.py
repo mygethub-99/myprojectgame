@@ -118,7 +118,6 @@ class SurviveAPI(remote.Service):
                       name='check_items',
                       http_method='POST')
     def checkInventory(self, request):
-        #itemname = request
         # Take the input user name and pulls the user info from User Class
         username = User.query(User.name == request.user_name).get()
         #Pulls inventory list from Inventory class = user key.
@@ -126,17 +125,15 @@ class SurviveAPI(remote.Service):
         if not chklist:
             raise endpoints.NotFoundException(
                     'This user does not have any Inventory')
-        
+        #Returns checkInventory message
         if username.key == chklist.user:
-            placeholder = chklist.boulder
+            itemname = request.item_name
+            value = getattr( chklist, itemname)
+            placeholder = value
         #itemlist =(" You have {}  of {}".format(itemcount, itemname))
-            return StringMessage(message=' {} '.format(
-                placeholder))
+            return StringMessage(message='You have {} {} '.format(
+                placeholder, itemname))
 
-
-
-
-       
 
     #Used by NewGame to check if old inventory list belongs to user deletes it.
     def _inventlist(self, request):
