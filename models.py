@@ -16,6 +16,11 @@ class User(ndb.Model):
 #Response message form for user creation
 #Sent by the return StringMessage statement in def create_user
 class StringMessage(messages.Message):
+    """StringMessage-- outbound (multi) string message"""
+    message = messages.StringField(1, repeated = True)
+
+
+class StringMessage1(messages.Message):
     """StringMessage-- outbound (single) string message"""
     message = messages.StringField(1)
 
@@ -51,6 +56,7 @@ class InventoryForm(messages.Message):
     tree = messages.IntegerField(6)
     sapling = messages.IntegerField(7)
     #user = messages.StringField(5)
+
 
 #This is the input form used to create a new inventory list.
 class NewInventList(messages.Message):
@@ -103,6 +109,11 @@ class Game(ndb.Model):
         #form.message send the good luck message.
         form.message = message
         return form
+
+#Print items needed to craft something.
+class StringMessageCraftForm(messages.Message):
+    """StringMessage-- outbound showing how to craft items"""
+    outmessage = messages.StringField(1, repeated=True)
 
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
