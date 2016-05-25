@@ -9,10 +9,10 @@ from google.appengine.ext import ndb
 from google.appengine.api import taskqueue
 
 from models import User, Game, NewGameForm, Inventory
-from models import StringMessage, GameForm, InventoryForm
-from models import NewInventList, checkInventory
+from models import StringMessage, GameForm, InventoryForm, StringMessage1
+from models import NewInventList, checkInventory, StringMessageCraftForm
 from utils import get_by_urlsafe, check_winner, check_full
-from dict_list import items, craft, commands, defaults
+from dict_list import items, craft, commands, defaults, crafty
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
 NEW_INVENT_LIST = endpoints.ResourceContainer(NewInventList)
@@ -32,7 +32,11 @@ MEMCACHE_INVENT_CHECK = 'INVENT_CHECK'
 class SurviveAPI(remote.Service):
     """Game API"""
      
-   
+    @endpoints.method(request_message=USER_REQUEST,
+                      response_message=StringMessage1,
+                      path='user',
+                      name='create_user',
+                      http_method='POST')
     def create_user(self, request):
         """Create a User. Requires a unique username"""
         if User.query(User.name == request.user_name).get():
@@ -43,11 +47,10 @@ class SurviveAPI(remote.Service):
         user = User(name=request.user_name, email=request.email, wins = wins)
         #user.put() sends the user info that is ndb
         user.put()
+        return StringMessage1(message='User {} created!'.format(
+                request.user_name))
 
-        for key,val in sorted(craft.items()):
-            outmessage =("{} : Can be make with {}".format(key, val))
-            return StringMessage(message='User {} created!'.format(
-                outmessage))
+        
         #This just returns a message for response at bottom of API
         #screen.
     
@@ -148,14 +151,18 @@ class SurviveAPI(remote.Service):
             raise endpoints.NotFoundException(
                     'User Already has Inventory List. Inventory has been deleted! Try Creating the game again please')
 
-        #thereyet = Inventory.query(ancestor = ndb.Key(User, name)
-        #userkey = ndb.Key(User, name = request.user_name).get() 
-        
         invent= Inventory(name = user.name, user = user.key, flint = items.get("flint"), grass=items.get("grass"), boulder=items.get("boulder"), hay = items.get("hay"), tree = items.get("tree"), sapling = items.get("sapling"))
-
         invent.put()
-        #return self._copyInvenToForm(invent)
-    
+        
+
+    @endpoints.method(message_types.VoidMessage, StringMessage,
+            path='howtocraft',
+            http_method='GET', name='HowToCraft')
+    def howtoCraft(self, request):
+        message = crafty
+        return StringMessage(message = message)
+
+        
     # Not user this yet memcache yet. 
     @endpoints.method(response_message=StringMessage,
                       path='inventory/check',
