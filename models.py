@@ -126,10 +126,24 @@ class GameForm(messages.Message):
     message = messages.StringField(5, required=True)
     user_name = messages.StringField(6, required=True)
 
-
+#Input form for making a new game.
 class NewGameForm(messages.Message):
     """Used to create a new game"""
     user_name = messages.StringField(1, required=True)
     #min = messages.IntegerField(2, default=1)
     #max = messages.IntegerField(3, default=10)
     #attempts = messages.IntegerField(4, default=5)
+
+#Response message for crafting an itme.
+class CraftForm(messages.Message):
+    """Used to craft an item response message"""
+    user_name = messages.StringField(1, required=True)
+    items_needed= messages.StringField(2, required=True)
+    items_required=messages.StringField(3, required=True)
+    response=messages.StringField(4, required=True)
+
+#Input form for crafting an item.
+class CraftItem(messages.Message):
+    """Used to input crafting request"""
+    user_name = messages.StringField(1, required=True)
+    itemcraft = messages.StringField(2, required=True)
