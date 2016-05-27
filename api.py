@@ -11,12 +11,14 @@ from google.appengine.api import taskqueue
 from models import User, Game, NewGameForm, Inventory
 from models import StringMessage, GameForm, InventoryForm, StringMessage1
 from models import NewInventList, checkInventory, StringMessageCraftForm
+from models import CraftForm, CraftItem
 from utils import get_by_urlsafe, check_winner, check_full
 from dict_list import items, craft, commands, defaults, crafty
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
 NEW_INVENT_LIST = endpoints.ResourceContainer(NewInventList)
 INVENT_CHECK = endpoints.ResourceContainer(checkInventory)
+CRAFT_ITEM = endpoints.ResourceContainer(checkInventory)
 
 #GET_GAME_REQUEST = endpoints.ResourceContainer(
         #urlsafe_game_key=messages.StringField(1),)
@@ -92,6 +94,9 @@ class SurviveAPI(remote.Service):
         if not user:
             raise endpoints.NotFoundException(
                     'A User with that name does not exist!')
+        ingamecheck =Game.query(Game.user == user.key).get()
+        if ingamecheck:
+            raise endpoints.NotFoundException('Sorry this user is in a game. Only one game person user at a time is possible')
         invenlist = self._inventlist(request)
         try:
             game = Game.new_game(user.key)
@@ -112,6 +117,22 @@ class SurviveAPI(remote.Service):
             #game.put()i
             #return game.to_form(msg)
 
+    @endpoints.method(request_message=CRAFT_ITEM,
+                      response_message=CraftForm,
+                      path='craft',
+                      name='craft_item',
+                      http_method='POST')
+    def new_game(self, request):
+        """Craft an item"""
+         user = User.query(User.name == request.user_name).get()
+        if not user:
+            raise endpoints.NotFoundException(
+                    'A User with that name does not exist!')
+        ingamecheck =Game.query(Game.user == user.key).get()
+        if not ingamecheck:
+            raise endpoints.NotFoundException('User is not in a game. Please create a new game for this user.')
+        #Next part is where it will get code hard. Going to bed.
+        
 
     #Pulls a property value of inventory.
     @endpoints.method(request_message=INVENT_CHECK,
