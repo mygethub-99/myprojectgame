@@ -44,17 +44,30 @@ craft = {
             "pickaxe" : { "flint" : 2, "twig" : 1 }
         }
 
+#Provides how to craft strings for HowToCraft endpoint in api.py        
+hay = "To make hay it takes 1 grass"
+twig = "To make twig it takes 1 sapling"
+log = "To make a log it takes 1 axe and 1 tree"
+axe = "To make a axe it takes 3 twigs and 1 flint"
+tent = "To make a tent it takes 10 twigs, 15 hay"
+firepit = "To make a firepit it takes 5 boulder, 3 log, 1 twig, 1 torch"
+pickaxe = "To make a pickaxe it takes 2 flint, 1 twig"
+crafty =[hay, twig, log, axe, tent, firepit, pickaxe]
+
+
+
 defaults = {
 	"wins" : 10,
 	"total_played": 0
 }
-# I ended up not using the loadInventory function and just pulling into the api because I added a key for user.
-def loadInventory(invent):
-    user = User.query(User.name == request.user_name).get()
-    if not user:
-        raise endpoints.NotFoundException('A User with that name does not exist!')
-    invent= Inventory(user = user.key, flint = items.get("flint"), grass=items.get("grass"), boulder=items.get("boulder"), hay = items.get("hay"))
-    return invent
+
+ 
+#def loadInventory(invent):
+    #user = User.query(User.name == request.user_name).get()
+    #if not user:
+        #raise endpoints.NotFoundException('A User with that name does not exist!')
+    #invent= Inventory(user = user.key, flint = items.get("flint"), grass=items.get("grass"), boulder=items.get("boulder"), hay = items.get("hay"), tree=items.get("tree"), sapling=items.get("sapling", twig=items.get("twig"), rock=items.get("rock"), pickaxe=items.get("pickaxe"))
+    #return invent
 
     #Inventory = type("Inventory", (object,), dict())
     #invent = Inventory()
