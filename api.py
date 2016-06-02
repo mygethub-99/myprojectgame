@@ -18,7 +18,7 @@ from dict_list import items, craft, commands, defaults, crafty
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
 NEW_INVENT_LIST = endpoints.ResourceContainer(NewInventList)
 INVENT_CHECK = endpoints.ResourceContainer(checkInventory)
-CRAFT_ITEM = endpoints.ResourceContainer(checkInventory)
+CRAFT_ITEM = endpoints.ResourceContainer(CraftItem)
 
 #GET_GAME_REQUEST = endpoints.ResourceContainer(
         #urlsafe_game_key=messages.StringField(1),)
@@ -118,13 +118,13 @@ class SurviveAPI(remote.Service):
             #return game.to_form(msg)
 
     @endpoints.method(request_message=CRAFT_ITEM,
-                      response_message=CraftForm,
+                      response_message=StringMessage1,
                       path='craft',
                       name='craft_item',
                       http_method='POST')
-    def new_game(self, request):
+    def craftItemNew(self, request):
         """Craft an item"""
-         user = User.query(User.name == request.user_name).get()
+        user = User.query(User.name == request.user_name).get()
         if not user:
             raise endpoints.NotFoundException(
                     'A User with that name does not exist!')
@@ -132,7 +132,50 @@ class SurviveAPI(remote.Service):
         if not ingamecheck:
             raise endpoints.NotFoundException('User is not in a game. Please create a new game for this user.')
         #Next part is where it will get code hard. Going to bed.
+
+        # Make a dict of inventory from ndb
+        inventory_items = Inventory.query( Inventory.user == user.key).get()
+        #makes of dict of the items needed to craft the item frm craft dict.
+        #Uses input form to get dict from craft dict of item.
+        takesToCraft = craft.get(request.itemcraft)
+
+
+
+        itemmakin = request.itemcraft
+        initems = items.get(request.itemcraft)
+        ip = 'axe'
+        check = inventory_items.sapling
         
+        # iterates through what it takes and what you got in items dict.
+        # This is just a step 1. 
+        # Step 2 will hit the ndb instead of the items dict for inventory.
+        canBeMade=True
+        for i in craft[request.itemcraft]:
+            if craft[request.itemcraft] [i] > items[i]:
+                canBeMade=False
+                return StringMessage1(message = 'Takes {}, you have {}'.format(takesToCraft, initems))
+
+                
+
+
+        
+        return StringMessage1(message='Takes {}, You have {}'.format(takesToCraft, check))
+
+
+
+
+
+        #itemtocraft = request.itemcraft
+        #inventory_items = Inventory.query( Inventory.user == user.key).get()
+        #value = getattr( inventory_items, itemtocraft)
+        #return StringMessage1(message='You have {}'.format(value))
+
+        #if itemtocraft in craft:
+
+            #for i in craft[itemtocraft]:
+                #if craft[itemtocraft] [i] > inventory_items[i]:
+                    #return StringMessage1(message='You have {} '.format(value))
+                #return StringMessage1(message='You are a dork"')
 
     #Pulls a property value of inventory.
     @endpoints.method(request_message=INVENT_CHECK,
