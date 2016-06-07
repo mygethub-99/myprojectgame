@@ -148,7 +148,7 @@ class SurviveAPI(remote.Service):
         copycraft = takesToCraft.copy()
         # Calls a function to populate copycraft with actual inventory values
         # from the Inventory ndb model.
-        invenOfCraft(copycraft, inventory_items)
+        self.invenOfCraft(copycraft, inventory_items)
         inven_ndb=copycraft
 
         
@@ -161,9 +161,13 @@ class SurviveAPI(remote.Service):
         for i in craft[request.itemcraft]:
             if craft[request.itemcraft] [i] > inven_ndb[i]:
                 canBeMade=False
-                return StringMessage1(message = 'Sorry, takes {}, you have {}'.format(takesToCraft, copycraft))
+                return StringMessage1(message = 'Sorry, item can not be crafted takes {}, you and you only have {}'.format(takesToCraft, inven_ndb))
+        if canBeMade == True:
+            updatex= setattr(inventory_items, request.itemcraft, 1 )
+            Inventory(**updatex).put()
 
-        return StringMessage1(message='Takes {}, You have {}'.format(takesToCraft, check))
+
+        return StringMessage1(message='Can be crafted! {}, You have {}'.format(takesToCraft, inven_ndb))
 
 
 
