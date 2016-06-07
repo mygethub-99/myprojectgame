@@ -117,6 +117,13 @@ class SurviveAPI(remote.Service):
             #game.put()i
             #return game.to_form(msg)
 
+    # Function to re-populate the copycraft dict with inventory values.        
+    def invenOfCraft(self,copycraft,inventory_items):
+        for w in copycraft:
+            copycraft[w]=getattr(inventory_items, w)
+        return copycraft
+
+           
     @endpoints.method(request_message=CRAFT_ITEM,
                       response_message=StringMessage1,
                       path='craft',
@@ -135,30 +142,27 @@ class SurviveAPI(remote.Service):
 
         # Make a dict of inventory from ndb
         inventory_items = Inventory.query( Inventory.user == user.key).get()
-        #makes of dict of the items needed to craft the item frm craft dict.
-        #Uses input form to get dict from craft dict of item.
+        # Create a dict of what is needed to craft the item     
         takesToCraft = craft.get(request.itemcraft)
+        # Make a copy of takesToCraft to re-populate with ndb values.
+        copycraft = takesToCraft.copy()
+        # Calls a function to populate copycraft with actual inventory values
+        # from the Inventory ndb model.
+        invenOfCraft(copycraft, inventory_items)
+        inven_ndb=copycraft
 
-
-
-        itemmakin = request.itemcraft
-        initems = items.get(request.itemcraft)
-        ip = 'axe'
-        check = inventory_items.sapling
+        
+        
         
         # iterates through what it takes and what you got in items dict.
         # This is just a step 1. 
         # Step 2 will hit the ndb instead of the items dict for inventory.
         canBeMade=True
         for i in craft[request.itemcraft]:
-            if craft[request.itemcraft] [i] > items[i]:
+            if craft[request.itemcraft] [i] > inven_ndb[i]:
                 canBeMade=False
-                return StringMessage1(message = 'Takes {}, you have {}'.format(takesToCraft, initems))
+                return StringMessage1(message = 'Sorry, takes {}, you have {}'.format(takesToCraft, copycraft))
 
-                
-
-
-        
         return StringMessage1(message='Takes {}, You have {}'.format(takesToCraft, check))
 
 
