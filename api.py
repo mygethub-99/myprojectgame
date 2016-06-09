@@ -163,8 +163,12 @@ class SurviveAPI(remote.Service):
                 canBeMade=False
                 return StringMessage1(message = 'Sorry, item can not be crafted takes {}, you and you only have {}'.format(takesToCraft, inven_ndb))
         if canBeMade == True:
-            updatex= setattr(inventory_items, request.itemcraft, 1 )
-            Inventory(**updatex).put()
+            #This only increments the item that was crafted.
+            #Need to decrement the items used to make the new item.
+            
+            increment=1+getattr(inventory_items, request.itemcraft)
+            setattr(inventory_items, request.itemcraft, increment)
+            inventory_items.put()
 
 
         return StringMessage1(message='Can be crafted! {}, You have {}'.format(takesToCraft, inven_ndb))
