@@ -165,9 +165,18 @@ class SurviveAPI(remote.Service):
         if canBeMade == True:
             #This only increments the item that was crafted.
             #Need to decrement the items used to make the new item.
-            
+            # Adds 1 to the quantity of a crafted item in ndb model.
             increment=1+getattr(inventory_items, request.itemcraft)
             setattr(inventory_items, request.itemcraft, increment)
+
+            #Decrement inventory items used to craft a new item.
+            neededForCraft= takesToCraft.copy()
+            for w in neededForCraft:
+                if hasattr(inventory_items, w) == True:
+                    setattr(inventory_items, w, getattr(inventory_items, w)-neededForCraft[w])
+                
+
+
             inventory_items.put()
 
 
