@@ -94,8 +94,9 @@ class SurviveAPI(remote.Service):
         if not user:
             raise endpoints.NotFoundException(
                     'A User with that name does not exist!')
+        #Check to see if use is already in a live game.
         ingamecheck =Game.query(Game.user == user.key).get()
-        if ingamecheck:
+        if ingamecheck.game_over == False and ingamecheck.canceled_game == False:
             raise endpoints.NotFoundException('Sorry this user is in a game. Only one game person user at a time is possible')
         invenlist = self._inventlist(request)
         try:
@@ -131,6 +132,7 @@ class SurviveAPI(remote.Service):
                       http_method='POST')
     def craftItemNew(self, request):
         """Craft an item"""
+        if Game.query
         user = User.query(User.name == request.user_name).get()
         if not user:
             raise endpoints.NotFoundException(
@@ -149,38 +151,41 @@ class SurviveAPI(remote.Service):
         # Calls a function to populate copycraft with actual inventory values
         # from the Inventory ndb model.
         self.invenOfCraft(copycraft, inventory_items)
+        #return of invenOfCraft function.
         inven_ndb=copycraft
-
-        
-        
-        
-        # iterates through what it takes and what you got in items dict.
-        # This is just a step 1. 
-        # Step 2 will hit the ndb instead of the items dict for inventory.
+        #Compares what is needed to craft an item to what exist in inventory.
+        #Determines is required items are present in inventory.
+        #Flags True or Fales.
+        #Returns message to user is insufficent items in inventory.
         canBeMade=True
         for i in craft[request.itemcraft]:
             if craft[request.itemcraft] [i] > inven_ndb[i]:
                 canBeMade=False
                 return StringMessage1(message = 'Sorry, item can not be crafted takes {}, you and you only have {}'.format(takesToCraft, inven_ndb))
         if canBeMade == True:
-            #This only increments the item that was crafted.
-            #Need to decrement the items used to make the new item.
             # Adds 1 to the quantity of a crafted item in ndb model.
             increment=1+getattr(inventory_items, request.itemcraft)
             setattr(inventory_items, request.itemcraft, increment)
-
             #Decrement inventory items used to craft a new item.
             neededForCraft= takesToCraft.copy()
             for w in neededForCraft:
                 if hasattr(inventory_items, w) == True:
                     setattr(inventory_items, w, getattr(inventory_items, w)-neededForCraft[w])
-                
-
-
             inventory_items.put()
+        #Checks to see if you have surved and won the game.
+        if inventory_items.tent >=1 and inventory_items.firepit >=1:
+            gamePull = Game.query( Game.user == user.key).get()
+            setattr(gamePull, "survived", True)
+            setattr(gamePull, "game_over", True)
+            gamePull.put()
+            return StringMessage1(message='Congrats {}, you survived! Game over.'.format(inventory_items.name))
+        else:
+            return StringMessage1(message='{} Can be crafted! {}, You have {}'.format(request.itemcraft, takesToCraft, inven_ndb))
+        
 
 
-        return StringMessage1(message='Can be crafted! {}, You have {}'.format(takesToCraft, inven_ndb))
+
+
 
 
 
@@ -258,9 +263,9 @@ class SurviveAPI(remote.Service):
         return StringMessage(message=memcache.get(MEMCACHE_INVENT_CHECK) or '')  
 
     @staticmethod
-    def _cache_invent():
-        """Populates memcache with the inventory list"""
-        inventlist= Inventory.query.fetch()
+    def _cache_game():
+        """Populates memcache with copy of Game ndb.Model"""
+        copyGame= Inventory.query.fetch()
         memcache.set(MEMCACHE_INVENT_CHECK, 'Here is your list of items')
         
         #games = Game.query(Game.game_over == False).fetch()
