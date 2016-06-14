@@ -11,7 +11,7 @@ from google.appengine.api import taskqueue
 from models import User, Game, NewGameForm, Inventory
 from models import StringMessage, GameForm, InventoryForm, StringMessage1
 from models import NewInventList, checkInventory, StringMessageCraftForm
-from models import CraftForm, CraftItem
+from models import CraftForm, CraftItem, cancel_game
 from utils import get_by_urlsafe, check_winner, check_full
 from dict_list import items, craft, commands, defaults, crafty
 
@@ -19,6 +19,7 @@ NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
 NEW_INVENT_LIST = endpoints.ResourceContainer(NewInventList)
 INVENT_CHECK = endpoints.ResourceContainer(checkInventory)
 CRAFT_ITEM = endpoints.ResourceContainer(CraftItem)
+CANCELED_GAME = endpoints.ResourceContainer(cancel_game)
 
 #GET_GAME_REQUEST = endpoints.ResourceContainer(
         #urlsafe_game_key=messages.StringField(1),)
@@ -109,6 +110,32 @@ class SurviveAPI(remote.Service):
             game=Game.new_game(user.key)
             return game.to_form('Prepare to test your survival skills!')
        
+
+    @endpoints.method(request_message=CANCELED_GAME,
+                      response_message=StringMessage1,
+                      path='cancel',
+                      name='cancel_game',
+                      http_method='POST')
+    def cancel_game(self, request):
+        """Cancels game in progress"""
+        user=User.query(User.name==request.user_name).get()
+        if not user:
+            raise endpoints.NotFoundException(
+                    'A User with that name does not exist!')
+        #Check to see if use is in a live game.
+        ingamecheck=Game.query(Game.user==user.key).get()
+        if hasattr(ingamecheck, "user")==True:
+            if getattr(ingamecheck, "game_over")==False and getattr(ingamecheck, "canceled_game")==False:
+                setattr(ingamecheck, "canceled_game", True)
+                ingamecheck.put()
+                return StringMessage1(message='User {} has canceled the game. Play again soon!!!'.format(request.user_name))
+            else:
+                return StringMessage1(message='User {} is not in a active game. Game cant be canceled'.format(request.user_name))
+        else:
+            raise endpoints.NotFoundException(
+                    'User {} does not have any games to cancel!'.format(request.user_name))
+            
+
 
     #Function to re-populate the copycraft dict with inventory values.        
     def invenOfCraft(self,copycraft,inventory_items):
