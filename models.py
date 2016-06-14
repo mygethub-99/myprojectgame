@@ -68,6 +68,10 @@ class checkInventory(messages.Message):
     user_name = messages.StringField(1, required=True)
     item_name = messages.StringField(2, required=True)
 
+class cancel_game(messages.Message):
+    """Used to cancel a game in progress"""
+    user_name = messages.StringField(1, required=True)
+
 
 class Game(ndb.Model):
     """Game object"""
