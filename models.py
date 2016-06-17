@@ -13,6 +13,7 @@ class User(ndb.Model):
     wins = ndb.IntegerProperty(default=0)
     total_played = ndb.IntegerProperty(default=0)
 
+
 #Response message form for user creation
 #Sent by the return StringMessage statement in def create_user
 class StringMessage(messages.Message):
@@ -23,7 +24,6 @@ class StringMessage(messages.Message):
 class StringMessage1(messages.Message):
     """StringMessage-- outbound (single) string message"""
     message = messages.StringField(1)
-
 
 
 #Upload items list to ndb
@@ -80,6 +80,7 @@ class Game(ndb.Model):
     survived = ndb.BooleanProperty(required=True, default=False)
     #history = ndb.PickleProperty(required=True)
     canceled_game = ndb.BooleanProperty(required=True, default=False)
+    history=ndb.PickleProperty(required=True)
     #target = ndb.IntegerProperty(required=True)
     #attempts_allowed = ndb.IntegerProperty(required=True)
     #attempts_remaining = ndb.IntegerProperty(required=True, default=5)
@@ -98,6 +99,7 @@ class Game(ndb.Model):
                     canceled_game=False,
                     survived=False,
                     game_over=False)
+        game.history=[]
         game.put()
         return game
 
