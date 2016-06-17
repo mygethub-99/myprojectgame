@@ -7,6 +7,7 @@ from protorpc import message_types
 from google.appengine.api import memcache
 from google.appengine.ext import ndb
 from google.appengine.api import taskqueue
+from google.appengine.ext.db import Key
 
 from models import User, Game, NewGameForm, Inventory
 from models import StringMessage, GameForm, InventoryForm, StringMessage1
@@ -20,6 +21,7 @@ NEW_INVENT_LIST = endpoints.ResourceContainer(NewInventList)
 INVENT_CHECK = endpoints.ResourceContainer(checkInventory)
 CRAFT_ITEM = endpoints.ResourceContainer(CraftItem)
 CANCELED_GAME = endpoints.ResourceContainer(cancel_game)
+GAME_HISTORY = endpoints.ResourceContainer(urlsafe_game_key=messages.StringField(1))
 
 #GET_GAME_REQUEST = endpoints.ResourceContainer(
         #urlsafe_game_key=messages.StringField(1),)
@@ -53,13 +55,7 @@ class SurviveAPI(remote.Service):
         return StringMessage1(message='User {} created!'.format(
                 request.user_name))
 
-        
-        #This just returns a message for response at bottom of API
-        #screen.
-    
-   
-
-#Need to check it there is already one for this player!!!!!!!!!!!
+       
     @endpoints.method(request_message= NEW_INVENT_LIST, response_message=InventoryForm, path='inventory', http_method='POST', name='getInventory')
     def _doInventory(self, request):
        
@@ -134,9 +130,8 @@ class SurviveAPI(remote.Service):
         else:
             raise endpoints.NotFoundException(
                     'User {} does not have any games to cancel!'.format(request.user_name))
-            
 
-
+    
     #Function to re-populate the copycraft dict with inventory values.        
     def invenOfCraft(self,copycraft,inventory_items):
         for w in copycraft:
@@ -179,6 +174,7 @@ class SurviveAPI(remote.Service):
                 return StringMessage1(message='Sorry, item can not be crafted takes {}, you and you only have {}'.format(takesToCraft, inven_ndb))
         if canBeMade==True:
             # Adds 1 to the quantity of a crafted item in ndb model.
+
             increment=1+getattr(inventory_items, request.itemcraft)
             setattr(inventory_items, request.itemcraft, increment)
             #Decrement inventory items used to craft a new item.
@@ -187,14 +183,17 @@ class SurviveAPI(remote.Service):
                 if hasattr(inventory_items, w)==True:
                     setattr(inventory_items, w, getattr(inventory_items, w)-neededForCraft[w])
             inventory_items.put()
+
         #Checks to see if you have surved and won the game.
         if inventory_items.tent>=1 and inventory_items.firepit>=1:
-            gamePull = Game.query( Game.user==user.key).get()
-            setattr(gamePull, "survived", True)
-            setattr(gamePull, "game_over", True)
-            gamePull.put()
+            #gamePull = Game.query( Game.user==user.key).get()
+            setattr(ingamecheck, "survived", True)
+            setattr(ingamecheck, "game_over", True)
+            ingamecheck.put()
             return StringMessage1(message='Congrats {}, you survived! Game over.'.format(inventory_items.name))
         else:
+            ingamecheck.history.append(request.itemcraft)
+            ingamecheck.put()
             return StringMessage1(message='{} Can be crafted! {}, You have {}'.format(request.itemcraft, takesToCraft, inven_ndb))
         
 
@@ -245,7 +244,22 @@ class SurviveAPI(remote.Service):
         message=crafty
         return StringMessage(message=message)
 
-        
+
+    #Display game history.
+    @endpoints.method(request_message=GAME_HISTORY,
+                      response_message=StringMessage1,
+                      path='game/{urlsafe_game_key}',
+                      name='game_history',
+                      http_method='GET')
+    def gameHistory(self, request):
+        """Returns the move history of a game"""
+        game = get_by_urlsafe(request.urlsafe_game_key, Game)
+        #game=Game.query(Game.ndb.==request.gamekeys).get()
+        if not game:
+            raise endpoints.NotFoundException('Game not found')
+        return StringMessage1(message=str(game.history))
+
+         
     # Not user this yet memcache yet. 
     @endpoints.method(response_message=StringMessage,
                       path='inventory/check',
