@@ -6,6 +6,7 @@ from google.appengine.ext import db
 import pickle
 
 
+
 class User(ndb.Model):
     """User profile"""
     name = ndb.StringProperty(required=True)
@@ -81,14 +82,17 @@ class Game(ndb.Model):
     #history = ndb.PickleProperty(required=True)
     canceled_game = ndb.BooleanProperty(required=True, default=False)
     history=ndb.PickleProperty(required=True)
+    game_started = ndb.BooleanProperty(required=True, default=False)
+    difficulty = ndb.IntegerProperty(required=True, default=0)
     #target = ndb.IntegerProperty(required=True)
     #attempts_allowed = ndb.IntegerProperty(required=True)
     #attempts_remaining = ndb.IntegerProperty(required=True, default=5)
     #game_over = ndb.BooleanProperty(required=True, default=False)
     #user = ndb.KeyProperty(required=True, kind='User')
 
+
     @classmethod
-    def new_game(cls, user):
+    def new_game(cls, user, setdiff):
         """Creates and returns a new game"""
         #if max < min:
             #raise ValueError('Maximum must be greater than minimum')
@@ -98,7 +102,9 @@ class Game(ndb.Model):
                     #attempts_remaining=attempts, 
                     canceled_game=False,
                     survived=False,
-                    game_over=False)
+                    game_over=False, 
+                    game_started=False, 
+                    difficulty=setdiff)
         game.history=[]
         game.put()
         return game
@@ -136,6 +142,7 @@ class GameForm(messages.Message):
 class NewGameForm(messages.Message):
     """Used to create a new game"""
     user_name = messages.StringField(1, required=True)
+    how_hard = messages.IntegerField(2, required=True)
     #min = messages.IntegerField(2, default=1)
     #max = messages.IntegerField(3, default=10)
     #attempts = messages.IntegerField(4, default=5)
@@ -153,3 +160,5 @@ class CraftItem(messages.Message):
     """Used to input crafting request"""
     user_name = messages.StringField(1, required=True)
     itemcraft = messages.StringField(2, required=True)
+
+
