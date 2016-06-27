@@ -1,4 +1,6 @@
 from models import Inventory, User
+import time
+
 
 #Commands to see options, inventory, and craft itmes.
 commands = {
@@ -60,6 +62,25 @@ defaults = {
 	"wins" : 10,
 	"total_played": 0
 }
+
+
+def countdown(ingamecheck):
+    if ingamecheck.difficulty < 2:
+        print "nothing needed"
+    if ingamecheck.difficulty == 2:
+        delay=10
+        while (delay >=0):
+            delay -=1
+            time.sleep(1)
+        print "number 2 worked"
+        game_over(ingamecheck)
+    if ingamecheck.difficulty == 3:
+        delay=10
+        while(delay >=0):
+            delay -=1
+            time.sleep(1)
+        print "number 3 worked"
+        game_over(ingamecheck)
 
  
 #def loadInventory(invent):
