@@ -1,5 +1,14 @@
-from models import Inventory, User
+from protorpc import remote
+from protorpc import messages
+from protorpc import message_types
+from google.appengine.api import memcache
+from google.appengine.ext import ndb
+from google.appengine.api import taskqueue
+from google.appengine.ext.db import Key
+from google.appengine.api import background_thread
+from models import Inventory, User, Game
 import time
+import threading
 
 
 #Commands to see options, inventory, and craft itmes.
@@ -68,33 +77,50 @@ def countdown(ingamecheck):
     if ingamecheck.difficulty < 2:
         print "nothing needed"
     if ingamecheck.difficulty == 2:
-        delay=10
+        delay=20
         while (delay >=0):
             delay -=1
             time.sleep(1)
         print "number 2 worked"
-        game_over(ingamecheck)
+        setattr(ingamecheck, "game_over", True)
+        ingamecheck.put()
     if ingamecheck.difficulty == 3:
-        delay=10
+        delay=30
         while(delay >=0):
             delay -=1
             time.sleep(1)
         print "number 3 worked"
-        game_over(ingamecheck)
+        return game_over(ingamecheck)
 
- 
-#def loadInventory(invent):
-    #user = User.query(User.name == request.user_name).get()
-    #if not user:
-        #raise endpoints.NotFoundException('A User with that name does not exist!')
-    #invent= Inventory(user = user.key, flint = items.get("flint"), grass=items.get("grass"), boulder=items.get("boulder"), hay = items.get("hay"), tree=items.get("tree"), sapling=items.get("sapling", twig=items.get("twig"), rock=items.get("rock"), pickaxe=items.get("pickaxe"))
-    #return invent
+def delayer(ingamecheck):
+    if ingamecheck.difficulty < 2:
+        print "nothing needed"
+    if ingamecheck.difficulty == 2:
+        delay=60
+        while (delay >=0):
+            delay -=1
+            time.sleep(1)
+        setattr(ingamecheck, "game_over", True)
+        ingamecheck.put()
+            
+    if ingamecheck.difficulty == 3:
+        delay=30
+        while(delay >=0):
+            delay -=1
+            time.sleep(1)
+        setattr(ingamecheck, "game_over", True)
+        ingamecheck.put()
 
-    #Inventory = type("Inventory", (object,), dict())
-    #invent = Inventory()
+def gamecheck (ingamecheck):
+    if ingamecheck.difficulty == 2:
+        if ((int(time.time())-ingamecheck.timer)/60)/2 == 1:
+            setattr(ingamecheck, "game_over", True)
+            setattr(ingamecheck, "timeout", True)
+            ingamecheck.put()
+    if ingamecheck.difficulty == 3:
+        if ((int(time.time())-ingamecheck.timer)/60)/2 == 2:
+            setattr(ingamecheck, "game_over", True)
+            setattr(ingamecheck, "timeout", True)
+            ingamecheck.put()
+    return
 
-    #for key, val in items.items():
-        #setattr(invent, key, val)
-        #return invent
-
-#inven= Inventory(flint = items.get("flint"), grass=items.get("grass"), boulder=items.get("boulder"), hay = items.get("hay"))
