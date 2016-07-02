@@ -1,6 +1,5 @@
 import logging
 import time
-import threading
 #debug=True
 import endpoints
 from protorpc import remote
@@ -10,13 +9,18 @@ from google.appengine.api import memcache
 from google.appengine.ext import ndb
 from google.appengine.api import taskqueue
 from google.appengine.ext.db import Key
-
 from models import User, Game, NewGameForm, Inventory
 from models import StringMessage, GameForm, InventoryForm, StringMessage1
 from models import NewInventList, checkInventory, StringMessageCraftForm
 from models import CraftForm, CraftItem, cancel_game
 from utils import get_by_urlsafe, check_winner, check_full
 from dict_list import items, craft, commands, defaults, crafty
+from dict_list import gamecheck
+
+logging.basicConfig(level=logging.DEBUG, format='(%(threadName)-10s) %(message)s',
+                    )
+
+
 
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
@@ -117,29 +121,6 @@ class SurviveAPI(remote.Service):
         ingamecheck.put()
         raise endpoints.ConflictException('You have run out of time. Game Over!')
 
-#this is not done!
-    class DelayThread(threading.Thread):
-        def __init__(self, )
-
-
-    def countdown(self, ingamecheck):
-        if ingamecheck.difficulty < 2:
-            print "nothing needed"
-        if ingamecheck.difficulty == 2:
-            delay=10
-            while (delay >=0):
-                delay -=1
-                time.sleep(1)
-            print "number 2 worked"
-            self.game_over(ingamecheck)
-        if ingamecheck.difficulty == 3:
-            delay=30
-            while(delay >=0):
-                delay -=1
-                time.sleep(1)
-            print "number 3 worked"
-            self.game_over(ingamecheck)
-       
 
     @endpoints.method(request_message=CANCELED_GAME,
                       response_message=StringMessage1,
@@ -168,16 +149,34 @@ class SurviveAPI(remote.Service):
 
     
     #Function to re-populate the copycraft dict with inventory values.        
-    def invenOfCraft(self,copycraft,inventory_items):
+    def invenOfCraft(self, copycraft, inventory_items):
         for w in copycraft:
             copycraft[w]=getattr(inventory_items, w)
         return copycraft
 
-       
+    def dude(self, ingamecheck):
+        trigger = 2
+        if trigger < 2:
+            raise endpoints.ConflictException('User is not in an active game. Please create a new game.')
+        if trigger == 2:
+            delay=60
+            time.sleep(60)
+            setattr(ingamecheck, "game_over", True)
+            ingamecheck.put()
+            
+        if trigger == 3:
+            delay=60
+            while(delay >=0):
+                delay -=1
+                time.sleep(1)
+            setattr(ingamecheck, "game_over", True)
+            ingamecheck.put()
+
+    
     @endpoints.method(request_message=CRAFT_ITEM,
                       response_message=StringMessage1,
                       path='craft',
-                      name='craft_item',
+                      name='craft_item', 
                       http_method='POST')
     def craftItemNew(self, request):
         """Craft an item"""
@@ -189,13 +188,21 @@ class SurviveAPI(remote.Service):
         if not ingamecheck:
             raise endpoints.NotFoundException('User is not in a game. Please create a new game for this user.')
         #Check for an active game.This will not work!
+        if ingamecheck.timeout == True:
+            raise endpoints.ConflictException('Player has run out of time and did not survive! Start a new game.')
         if ingamecheck.game_over==True:
             raise endpoints.ConflictException('User is not in an active game. Please create a new game.')
-        if ingamecheck.game_over == False and ingamecheck.game_started == False:
-            thread1.start()
+        #Starts the game timer.
+        if ingamecheck.game_started == False:
+            t1=int(time.time())
+            gamediff=getattr(ingamecheck, "difficulty")
+            setattr(ingamecheck, "timer", t1)
             setattr(ingamecheck, "game_started", True)
             ingamecheck.put()
-            
+        #Compares timer to current time.
+        if ingamecheck.game_started == True:
+            if ingamecheck.difficulty > 1:
+                gamecheck(ingamecheck)
         # Make a dict of inventory from ndb
         inventory_items=Inventory.query( Inventory.user==user.key).get()
         # Create a dict of what is needed to craft the item     
@@ -209,15 +216,14 @@ class SurviveAPI(remote.Service):
         #Compares what is needed to craft an item to what exist in inventory.
         #Determines if required items are present in inventory.
         #Flags True or Fales.
-        #Returns message to user if insufficent items in inventory to craft the item.
+        #Returns message to user if insufficent items in inventory to craft an item.
         canBeMade=True
         for i in craft[request.itemcraft]:
             if craft[request.itemcraft] [i]>inven_ndb[i]:
                 canBeMade=False
-                return StringMessage1(message='Sorry, item can not be crafted takes {}, you and you only have {}'.format(takesToCraft, inven_ndb))
+                return StringMessage1(message='Sorry, item can not be crafted. Takes {}, you only have {}'.format(takesToCraft, inven_ndb))
         if canBeMade==True:
             # Adds 1 to the quantity of a crafted item in ndb model.
-
             increment=1+getattr(inventory_items, request.itemcraft)
             setattr(inventory_items, request.itemcraft, increment)
             #Decrement inventory items used to craft a new item.
