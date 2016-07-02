@@ -56,6 +56,7 @@ class InventoryForm(messages.Message):
     hay = messages.IntegerField(5)
     tree = messages.IntegerField(6)
     sapling = messages.IntegerField(7)
+    hay = messages.IntegerField(8)
     #user = messages.StringField(5)
 
 
@@ -84,6 +85,8 @@ class Game(ndb.Model):
     history=ndb.PickleProperty(required=True)
     game_started = ndb.BooleanProperty(required=True, default=False)
     difficulty = ndb.IntegerProperty(required=True, default=0)
+    timeout = ndb.BooleanProperty(required=True, default=False)
+    timer = ndb.IntegerProperty(required=True, default=0)
     #target = ndb.IntegerProperty(required=True)
     #attempts_allowed = ndb.IntegerProperty(required=True)
     #attempts_remaining = ndb.IntegerProperty(required=True, default=5)
@@ -160,5 +163,3 @@ class CraftItem(messages.Message):
     """Used to input crafting request"""
     user_name = messages.StringField(1, required=True)
     itemcraft = messages.StringField(2, required=True)
-
-
