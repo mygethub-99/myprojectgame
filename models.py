@@ -46,25 +46,6 @@ class Inventory(ndb.Model):
     name = ndb.StringProperty(required=True)
 
 
-#This is the output response form after inventory list if created.
-class InventoryForm(messages.Message):
-    """InventoryForm -- List of stuff for survival"""
-    #urlsafe_key = messages.StringField(1, required=True)
-    flint = messages.IntegerField(2)
-    grass = messages.IntegerField(3)
-    boulder = messages.IntegerField(4)
-    hay = messages.IntegerField(5)
-    tree = messages.IntegerField(6)
-    sapling = messages.IntegerField(7)
-    hay = messages.IntegerField(8)
-    #user = messages.StringField(5)
-
-
-#This is the input form used to create a new inventory list.
-class NewInventList(messages.Message):
-    """Used to create a new game"""
-    user_name = messages.StringField(1, required=True)
-
 #Input form for the Query the Inventory list by a property, ie boulder.
 class checkInventory(messages.Message):
     user_name = messages.StringField(1, required=True)
