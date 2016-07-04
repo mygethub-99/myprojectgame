@@ -68,57 +68,18 @@ crafty =[hay, twig, log, axe, tent, firepit, pickaxe]
 
 
 defaults = {
-	"wins" : 10,
+	"wins" : 0,
 	"total_played": 0
 }
 
-
-def countdown(ingamecheck):
-    if ingamecheck.difficulty < 2:
-        print "nothing needed"
-    if ingamecheck.difficulty == 2:
-        delay=20
-        while (delay >=0):
-            delay -=1
-            time.sleep(1)
-        print "number 2 worked"
-        setattr(ingamecheck, "game_over", True)
-        ingamecheck.put()
-    if ingamecheck.difficulty == 3:
-        delay=30
-        while(delay >=0):
-            delay -=1
-            time.sleep(1)
-        print "number 3 worked"
-        return game_over(ingamecheck)
-
-def delayer(ingamecheck):
-    if ingamecheck.difficulty < 2:
-        print "nothing needed"
-    if ingamecheck.difficulty == 2:
-        delay=60
-        while (delay >=0):
-            delay -=1
-            time.sleep(1)
-        setattr(ingamecheck, "game_over", True)
-        ingamecheck.put()
-            
-    if ingamecheck.difficulty == 3:
-        delay=30
-        while(delay >=0):
-            delay -=1
-            time.sleep(1)
-        setattr(ingamecheck, "game_over", True)
-        ingamecheck.put()
-
 def gamecheck (ingamecheck):
     if ingamecheck.difficulty == 2:
-        if ((int(time.time())-ingamecheck.timer)/60)/2 == 1:
+        if ((int(time.time())-ingamecheck.timer)/60)== 7:
             setattr(ingamecheck, "game_over", True)
             setattr(ingamecheck, "timeout", True)
             ingamecheck.put()
     if ingamecheck.difficulty == 3:
-        if ((int(time.time())-ingamecheck.timer)/60)/2 == 2:
+        if ((int(time.time())-ingamecheck.timer)/60) == 4:
             setattr(ingamecheck, "game_over", True)
             setattr(ingamecheck, "timeout", True)
             ingamecheck.put()
