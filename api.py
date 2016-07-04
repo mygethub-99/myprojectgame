@@ -10,8 +10,8 @@ from google.appengine.ext import ndb
 from google.appengine.api import taskqueue
 from google.appengine.ext.db import Key
 from models import User, Game, NewGameForm, Inventory
-from models import StringMessage, GameForm, InventoryForm, StringMessage1
-from models import NewInventList, checkInventory, StringMessageCraftForm
+from models import StringMessage, GameForm, StringMessage1
+from models import checkInventory, StringMessageCraftForm
 from models import CraftForm, CraftItem, cancel_game
 from utils import get_by_urlsafe, check_winner, check_full
 from dict_list import items, craft, commands, defaults, crafty
@@ -24,7 +24,6 @@ logging.basicConfig(level=logging.DEBUG, format='(%(threadName)-10s) %(message)s
 
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
-NEW_INVENT_LIST = endpoints.ResourceContainer(NewInventList)
 INVENT_CHECK = endpoints.ResourceContainer(checkInventory)
 CRAFT_ITEM = endpoints.ResourceContainer(CraftItem)
 CANCELED_GAME = endpoints.ResourceContainer(cancel_game)
@@ -33,7 +32,8 @@ GAME_HISTORY = endpoints.ResourceContainer(urlsafe_game_key=messages.StringField
 #GET_GAME_REQUEST = endpoints.ResourceContainer(
         #urlsafe_game_key=messages.StringField(1),)
 
-USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1), email=messages.StringField(2), wins=messages.StringField(3))
+USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1), email=messages.StringField(2))
+
 MEMCACHE_INVENT_CHECK = 'INVENT_CHECK'
 #Got to figure out how to pass the command message output.
 #MEMCACHE_MOVES_REMAINING = 'MOVES_REMAINING'
@@ -43,6 +43,9 @@ MEMCACHE_INVENT_CHECK = 'INVENT_CHECK'
 @endpoints.api(name='survive', version='v1')
 class SurviveAPI(remote.Service):
     """Game API"""
+
+
+    
      
     @endpoints.method(request_message=USER_REQUEST,
                       response_message=StringMessage1,
@@ -55,26 +58,14 @@ class SurviveAPI(remote.Service):
             raise endpoints.ConflictException(
                     'A User with that name already exists!')
         #By adding wins, it added it to the create_user input #api page.
-        wins = defaults['wins']
-        user = User(name=request.user_name, email=request.email, wins = wins)
+        #wins = defaults['wins']
+        user = User(name=request.user_name, email=request.email)
         #user.put() sends the user info that is ndb
         user.put()
         return StringMessage1(message='User {} created!'.format(
                 request.user_name))
 
        
-    @endpoints.method(request_message= NEW_INVENT_LIST, response_message=InventoryForm, path='inventory', http_method='POST', name='getInventory')
-    def _doInventory(self, request):
-       
-        user = User.query(User.name==request.user_name).get()
-        if not user:
-            raise endpoints.NotFoundException('A User with that name does not exist!')
-        
-        invent= Inventory(name=user.name, user = user.key, flint = items.get("flint"), grass=items.get("grass"), boulder=items.get("boulder"), hay = items.get("hay"), tree = items.get("tree"), sapling = items.get("sapling"))
-
-        invent.put()
-        return self._copyInvenToForm(invent)
-   
     #This is not sending the output to the form.
     #Since I added the inventory create function to the new
     #game function, this form may be going away. Sorry!
@@ -104,8 +95,8 @@ class SurviveAPI(remote.Service):
         setdiff=request.how_hard
         #Test to see if a game entity actually exist.
         if hasattr(ingamecheck, "user")==True:
-            if getattr(ingamecheck, "game_over")==False and getattr(ingamecheck, "canceled_game")==False:
-                    raise endpoints.ConflictException('Only one active game per user is allowed')
+            if ingamecheck.game_over==False:
+                raise endpoints.ConflictException('Only one active game per user is allowed')
             else:
                 invenlist=self._inventlist(request)
                 game=Game.new_game(user.key, setdiff)
@@ -207,6 +198,8 @@ class SurviveAPI(remote.Service):
         inventory_items=Inventory.query( Inventory.user==user.key).get()
         # Create a dict of what is needed to craft the item     
         takesToCraft=craft.get(request.itemcraft)
+        if takesToCraft == None:
+            raise endpoints.NotFoundException('Invalid item name.')
         # Make a copy of takesToCraft to re-populate with ndb values.
         copycraft=takesToCraft.copy()
         #Calls a function to populate copycraft with actual inventory values from the Inventory ndb model.
@@ -251,12 +244,13 @@ class SurviveAPI(remote.Service):
 
     #Pulls a property value of inventory.
     @endpoints.method(request_message=INVENT_CHECK,
-                      response_message=StringMessage,
+                      response_message=StringMessage1,
                       path='invencheck',
                       #This is the name that appears in the api
                       name='check_items',
                       http_method='POST')
     def checkInventory(self, request):
+        """Used to pull inventory on a item"""
         #Take the input user name and pulls the user info from User Class
         username=User.query(User.name==request.user_name).get()
         #Pulls inventory list from Inventory class = user key.
@@ -270,21 +264,17 @@ class SurviveAPI(remote.Service):
             value=getattr( chklist, itemname)
             placeholder=value
         #itemlist =(" You have {}  of {}".format(itemcount, itemname))
-            return StringMessage(message='You have {} {} '.format(
-                placeholder, itemname))
+            return StringMessage1(message='You have {} {} '.format(
+                value, itemname))
 
-
+ 
     #Used by NewGame to check if old inventory list belongs to user deletes it.
     def _inventlist(self, request):
-       
         user=User.query(User.name==request.user_name).get()
         check_invent=Inventory.query(Inventory.name==request.user_name).get()
         #Deletes the inventory list and throw message.    
         if check_invent:
             check_invent.key.delete()
-            raise endpoints.ConflictException(
-                    'User Already has Inventory List. Inventory has been deleted! Try Creating the game again please')
-
         invent=Inventory(name=user.name, user=user.key, flint=items.get("flint"), grass=items.get("grass"), boulder=items.get("boulder"), hay=items.get("hay"), tree=items.get("tree"), sapling=items.get("sapling"))
         invent.put()
         
@@ -293,6 +283,7 @@ class SurviveAPI(remote.Service):
             path='howtocraft',
             http_method='GET', name='HowToCraft')
     def howtoCraft(self, request):
+        """Pulls a list of how to craft an item."""
         message=crafty
         return StringMessage(message=message)
 
