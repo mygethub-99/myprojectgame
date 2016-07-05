@@ -17,35 +17,19 @@ from utils import get_by_urlsafe, check_winner, check_full
 from dict_list import items, craft, commands, defaults, crafty
 from dict_list import gamecheck
 
-logging.basicConfig(level=logging.DEBUG, format='(%(threadName)-10s) %(message)s',
-                    )
-
-
-
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
 INVENT_CHECK = endpoints.ResourceContainer(checkInventory)
 CRAFT_ITEM = endpoints.ResourceContainer(CraftItem)
 CANCELED_GAME = endpoints.ResourceContainer(cancel_game)
 GAME_HISTORY = endpoints.ResourceContainer(urlsafe_game_key=messages.StringField(1))
-
-#GET_GAME_REQUEST = endpoints.ResourceContainer(
-        #urlsafe_game_key=messages.StringField(1),)
-
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1), email=messages.StringField(2))
-
 MEMCACHE_INVENT_CHECK = 'INVENT_CHECK'
-#Got to figure out how to pass the command message output.
-#MEMCACHE_MOVES_REMAINING = 'MOVES_REMAINING'
-
 
 
 @endpoints.api(name='survive', version='v1')
 class SurviveAPI(remote.Service):
     """Game API"""
-
-
-    
      
     @endpoints.method(request_message=USER_REQUEST,
                       response_message=StringMessage1,
@@ -145,25 +129,7 @@ class SurviveAPI(remote.Service):
             copycraft[w]=getattr(inventory_items, w)
         return copycraft
 
-    def dude(self, ingamecheck):
-        trigger = 2
-        if trigger < 2:
-            raise endpoints.ConflictException('User is not in an active game. Please create a new game.')
-        if trigger == 2:
-            delay=60
-            time.sleep(60)
-            setattr(ingamecheck, "game_over", True)
-            ingamecheck.put()
-            
-        if trigger == 3:
-            delay=60
-            while(delay >=0):
-                delay -=1
-                time.sleep(1)
-            setattr(ingamecheck, "game_over", True)
-            ingamecheck.put()
-
-    
+       
     @endpoints.method(request_message=CRAFT_ITEM,
                       response_message=StringMessage1,
                       path='craft',
@@ -180,6 +146,8 @@ class SurviveAPI(remote.Service):
             raise endpoints.NotFoundException('User is not in a game. Please create a new game for this user.')
         #Check for an active game.This will not work!
         if ingamecheck.timeout == True:
+            setattr(ingamecheck, "game_over", True)
+            ingamecheck.put()
             raise endpoints.ConflictException('Player has run out of time and did not survive! Start a new game.')
         if ingamecheck.game_over==True:
             raise endpoints.ConflictException('User is not in an active game. Please create a new game.')
@@ -190,7 +158,7 @@ class SurviveAPI(remote.Service):
             setattr(ingamecheck, "timer", t1)
             setattr(ingamecheck, "game_started", True)
             ingamecheck.put()
-        #Compares timer to current time.
+        #Calls gamecheck for game timer.
         if ingamecheck.game_started == True:
             if ingamecheck.difficulty > 1:
                 gamecheck(ingamecheck)
