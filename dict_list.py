@@ -2,13 +2,10 @@ from protorpc import remote
 from protorpc import messages
 from protorpc import message_types
 from google.appengine.api import memcache
-from google.appengine.ext import ndb
-from google.appengine.api import taskqueue
-from google.appengine.ext.db import Key
-from google.appengine.api import background_thread
+
 from models import Inventory, User, Game
 import time
-import threading
+
 
 
 #Commands to see options, inventory, and craft itmes.
@@ -62,10 +59,9 @@ log = "To make a log it takes 1 axe and 1 tree"
 axe = "To make a axe it takes 3 twigs and 1 flint"
 tent = "To make a tent it takes 10 twigs, 15 hay"
 firepit = "To make a firepit it takes 5 boulder, 3 log, 1 twig, 1 torch"
+torch = "To make a torch it takes 1 flint, 1 grass, 1 twig"
 pickaxe = "To make a pickaxe it takes 2 flint, 1 twig"
-crafty =[hay, twig, log, axe, tent, firepit, pickaxe]
-
-
+crafty =[hay, twig, log, axe, tent, torch, firepit, pickaxe]
 
 defaults = {
 	"wins" : 0,
@@ -74,13 +70,11 @@ defaults = {
 
 def gamecheck (ingamecheck):
     if ingamecheck.difficulty == 2:
-        if ((int(time.time())-ingamecheck.timer)/60)== 7:
-            setattr(ingamecheck, "game_over", True)
+        if ((int(time.time())-ingamecheck.timer)/60) == 7:
             setattr(ingamecheck, "timeout", True)
             ingamecheck.put()
     if ingamecheck.difficulty == 3:
-        if ((int(time.time())-ingamecheck.timer)/60) == 4:
-            setattr(ingamecheck, "game_over", True)
+        if ((int(time.time())-ingamecheck.timer)/60) == 1:
             setattr(ingamecheck, "timeout", True)
             ingamecheck.put()
     return
