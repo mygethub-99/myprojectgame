@@ -13,6 +13,8 @@ from models import User, Game, NewGameForm, Inventory
 from models import StringMessage, GameForm, StringMessage1
 from models import checkInventory, StringMessageCraftForm
 from models import CraftForm, CraftItem, cancel_game
+from models import UserForm, UserForms, GetUserGame
+#from models import GetUserGame
 from utils import get_by_urlsafe, check_winner, check_full
 from dict_list import items, craft, commands, defaults, crafty
 from dict_list import gamecheck
@@ -24,6 +26,8 @@ CRAFT_ITEM = endpoints.ResourceContainer(CraftItem)
 CANCELED_GAME = endpoints.ResourceContainer(cancel_game)
 GAME_HISTORY = endpoints.ResourceContainer(urlsafe_game_key=messages.StringField(1))
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1), email=messages.StringField(2))
+GET_GAME_REQUEST = endpoints.ResourceContainer(
+        urlsafe_game_key=messages.StringField(1),)
 MEMCACHE_INVENT_CHECK = 'INVENT_CHECK'
 
 
@@ -96,6 +100,7 @@ class SurviveAPI(remote.Service):
         ingamecheck.put()
         raise endpoints.ConflictException('You have run out of time. Game Over!')
 
+        
 
     @endpoints.method(request_message=CANCELED_GAME,
                       response_message=StringMessage1,
@@ -111,7 +116,7 @@ class SurviveAPI(remote.Service):
         #Check to see if use is in a live game.
         ingamecheck=Game.query(Game.user==user.key).get()
         if hasattr(ingamecheck, "user")==True:
-            if getattr(ingamecheck, "game_over")==False and getattr(ingamecheck, "canceled_game")==False:
+            if ingamecheck.game_over==False and ingamecheck.canceled_game==False:
                 setattr(ingamecheck, "canceled_game", True)
                 setattr(ingamecheck, "game_over", True)
                 ingamecheck.put()
@@ -121,7 +126,21 @@ class SurviveAPI(remote.Service):
         else:
             raise endpoints.NotFoundException(
                     'User {} does not have any games to cancel!'.format(request.user_name))
+    
 
+    @endpoints.method(request_message=GAME_HISTORY,
+                      response_message=GameForm,
+                      path='game/{urlsafe_game_key}',
+                      name='get_user_game',
+                      http_method='GET')
+    def get_user_game(self, request):
+        """Return all User's active games"""
+        game = get_by_urlsafe(request.urlsafe_game_key, Game)
+        if game:
+            return game.to_form('Status of Game!')
+        else:
+            raise endpoints.NotFoundException('Game not found!')
+       
     
     #Function to re-populate the copycraft dict with inventory values.        
     def invenOfCraft(self, copycraft, inventory_items):
@@ -141,7 +160,8 @@ class SurviveAPI(remote.Service):
         if not user:
             raise endpoints.NotFoundException(
                     'A User with that name does not exist!')
-        ingamecheck=Game.query(Game.user==user.key).get()
+        ingamecheck=Game.query(Game.user==user.key).filter(Game.game_over == False)
+        ingamecheck =ingamecheck.get()
         if not ingamecheck:
             raise endpoints.NotFoundException('User is not in a game. Please create a new game for this user.')
         #Check for an active game.This will not work!
@@ -149,8 +169,8 @@ class SurviveAPI(remote.Service):
             setattr(ingamecheck, "game_over", True)
             ingamecheck.put()
             raise endpoints.ConflictException('Player has run out of time and did not survive! Start a new game.')
-        if ingamecheck.game_over==True:
-            raise endpoints.ConflictException('User is not in an active game. Please create a new game.')
+        #if ingamecheck.game_over==True:
+            #raise endpoints.ConflictException('User is not in an active game. Please create a new game.')
         #Starts the game timer.
         if ingamecheck.game_started == False:
             t1=int(time.time())
@@ -259,7 +279,7 @@ class SurviveAPI(remote.Service):
     #Display game history.
     @endpoints.method(request_message=GAME_HISTORY,
                       response_message=StringMessage1,
-                      path='game/{urlsafe_game_key}',
+                      path='game/{urlsafe_game_key}/history',
                       name='game_history',
                       http_method='GET')
     def gameHistory(self, request):
@@ -269,6 +289,17 @@ class SurviveAPI(remote.Service):
         if not game:
             raise endpoints.NotFoundException('Game not found')
         return StringMessage1(message=str(game.history))
+
+
+    @endpoints.method(response_message=UserForms,
+                      path='user/ranking',
+                      name='get_user_rankings',
+                      http_method='GET')
+    def get_user_rankings(self, request):
+        """Return all Users ranked by their win percentage"""
+        users = User.query(User.total_played > 0).fetch()
+        users = sorted(users, key=lambda x: x.win_percentage, reverse=True)
+        return UserForms(items=[user.to_form() for user in users])
 
          
     # Not user this yet memcache yet. 
