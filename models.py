@@ -14,6 +14,20 @@ class User(ndb.Model):
     wins = ndb.IntegerProperty(default=0)
     total_played = ndb.IntegerProperty(default=0)
 
+    @property
+    def win_percentage(self):
+        if self.total_played > 0:
+            return float(self.wins)/float(self.total_played)
+        else:
+            return 0
+
+    def to_form(self):
+        return UserForm(name=self.name,
+                        email=self.email,
+                        wins=self.wins,
+                        total_played=self.total_played,
+                        win_percentage=self.win_percentage)
+
 
 #Response message form for user creation
 #Sent by the return StringMessage statement in def create_user
@@ -144,3 +158,20 @@ class CraftItem(messages.Message):
     """Used to input crafting request"""
     user_name = messages.StringField(1, required=True)
     itemcraft = messages.StringField(2, required=True)
+
+class GetUserGame(messages.Message):
+    """Used to input crafting request"""
+    user_name = messages.StringField(1, required=True)
+
+
+class UserForm(messages.Message):
+    """User Form"""
+    name = messages.StringField(1, required=True)
+    email = messages.StringField(2)
+    wins = messages.IntegerField(3, required=True)
+    total_played = messages.IntegerField(4, required=True)
+    win_percentage = messages.FloatField(5, required=True)
+
+class UserForms(messages.Message):
+    """Container for multiple User Forms"""
+    items = messages.MessageField(UserForm, 1, repeated=True)
