@@ -13,6 +13,7 @@ class User(ndb.Model):
     email = ndb.StringProperty(required=True)
     wins = ndb.IntegerProperty(default=0)
     total_played = ndb.IntegerProperty(default=0)
+    score = ndb.IntegerProperty(default=0)
 
     @property
     def win_percentage(self):
@@ -27,6 +28,10 @@ class User(ndb.Model):
                         wins=self.wins,
                         total_played=self.total_played,
                         win_percentage=self.win_percentage)
+    def to_score(self):
+        return ScoreForm(name=self.name,
+                         score=self.score
+                         )
 
 
 #Response message form for user creation
@@ -175,3 +180,18 @@ class UserForm(messages.Message):
 class UserForms(messages.Message):
     """Container for multiple User Forms"""
     items = messages.MessageField(UserForm, 1, repeated=True)
+
+class GetScore(messages.Message):
+    """Used to set number of scores queried"""
+    HowMany = messages.IntegerField(1, required=True)
+
+class ScoreForm(messages.Message):
+    """Return message form for scores"""
+    name = messages.StringField(1, required=True)
+    #email = messages.StringField(2)
+    #wins = messages.IntegerField(3, required=True)
+    #total_played = messages.IntegerField(4, required=True)
+    score = messages.IntegerField(5, required=True)
+
+class ScoreForms(messages.Message):
+    items = messages.MessageField(ScoreForm, 1, repeated=True)
