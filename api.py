@@ -14,6 +14,7 @@ from models import StringMessage, GameForm, StringMessage1
 from models import checkInventory, StringMessageCraftForm
 from models import CraftForm, CraftItem, cancel_game
 from models import UserForm, UserForms, GetUserGame
+from models import ScoreForms, ScoreForm, GetScore
 #from models import GetUserGame
 from utils import get_by_urlsafe, check_winner, check_full
 from dict_list import items, craft, commands, defaults, crafty
@@ -28,6 +29,7 @@ GAME_HISTORY = endpoints.ResourceContainer(urlsafe_game_key=messages.StringField
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1), email=messages.StringField(2))
 GET_GAME_REQUEST = endpoints.ResourceContainer(
         urlsafe_game_key=messages.StringField(1),)
+GAMESCORE = endpoints.ResourceContainer(GetScore)
 MEMCACHE_INVENT_CHECK = 'INVENT_CHECK'
 
 
@@ -221,6 +223,7 @@ class SurviveAPI(remote.Service):
             setattr(ingamecheck, "game_over", True)
             setattr(user, "wins", 1+getattr(user, "wins"))
             setattr(user, "total_played", 1+getattr(user, "total_played"))
+            setattr(user, "score", 20*ingamecheck.difficulty+user.score)
             ingamecheck.put()
             user.put()
             return StringMessage1(message='Congrats {}, you survived! Game over.'.format(inventory_items.name))
@@ -294,12 +297,30 @@ class SurviveAPI(remote.Service):
     @endpoints.method(response_message=UserForms,
                       path='user/ranking',
                       name='get_user_rankings',
-                      http_method='GET')
+                      http_method='POST')
     def get_user_rankings(self, request):
         """Return all Users ranked by their win percentage"""
         users = User.query(User.total_played > 0).fetch()
         users = sorted(users, key=lambda x: x.win_percentage, reverse=True)
-        return UserForms(items=[user.to_form() for user in users])
+        return UserForms(items=[i.to_form() for i in users])
+
+    @endpoints.method(request_message=GAMESCORE,
+            response_message=ScoreForms,
+            path='user/userscore',
+            name='get_users_score',
+            http_method='POST')
+    def scores(self, request):
+        """Present User scores"""
+        queryscore = User.query()
+        qscore = queryscore.fetch(request.HowMany, projection=[User.name, User.score])
+
+        #delattr(qscore, "email")
+        #del qscore__dict__['qscore'].wins
+
+        
+        #del(qscore, "total_played")
+        qscore = sorted(qscore, key=lambda x: x.score, reverse=True)
+        return ScoreForms(items=[i.to_score() for i in qscore])
 
          
     # Not user this yet memcache yet. 
