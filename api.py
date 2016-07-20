@@ -92,6 +92,11 @@ class SurviveAPI(remote.Service):
                 game=Game.new_game(user.key, setdiff)
                 return game.to_form('Prepare to test your survival skills!')
         else:
+            # Send reminder email
+
+            taskqueue.add(params={'email': user.email, 'name': user.name},
+            url='/tasks/send_newgame_email', method="GET")
+            
             invenlist=self._inventlist(request)
             game=Game.new_game(user.key, setdiff)
             return game.to_form('Prepare to test your survival skills!')
