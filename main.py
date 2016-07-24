@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 import logging
+import time
 
 import webapp2
 from google.appengine.api import mail, app_identity
@@ -25,16 +26,14 @@ from utils import get_by_urlsafe
 from models import User, Game
 
 
-class SendReminderEmail(webapp2.RequestHandler):
-    def get(self):
+class SendNewGameEmail(webapp2.RequestHandler):
+    def post(self):
         """Send email to user once creating a new game"""
-
         subject = 'Thank you for playing survivor'
-        body = 'Hello {} you have a new game in progress. Enjoy!'.format(self.request.get('name'))
+        body = 'Hello {} you have a new game in progress. Enjoy!'.format\
+        (self.request.get('name'))
         # This will send test emails, the arguments to send_mail are:
         # from, to, subject, body
-        x = self.request.get('email')
-        print x
         mail.send_mail('noreply@{}.appspotmail.com'.format \
           (app_identity.get_application_id()),
           self.request.get('email'),
@@ -42,5 +41,31 @@ class SendReminderEmail(webapp2.RequestHandler):
           body)
 
 
+class ReminderEmail(webapp2.RequestHandler):
+    def get(self):
+        """Send a reminder email to players with an aging game"""
+        #querygame = Game.query()
+        #querygame = querygame.filter(Game.game_over==False).get()
+        #timecompare= int(time.time())
+        users = User.query(User.email != None)
+
+        for user in users:
+            games =Game.query(Game.user == user.key).filter(Game.game_over == False)
+            if games.count() > 0:
+                sender = 'noreply@{}.appspotmail.com'.format(app_identity.get_application_id())
+                to = user.email
+                subject = 'Hello {}, play your game dude!'.format(user.name)
+                body = "Dude, it is time to finish this!!!!!" 
+                mail.send_mail(sender, to, subject, body) 
+                    
+               
+
+
+ # I need to query the user ndb to get emails for the games users that have an active game.
+
+
+
+
 app = webapp2.WSGIApplication([
-    ('/tasks/send_newgame_email', SendReminderEmail)], debug=True)
+    ('/tasks/send_newgame_email', SendNewGameEmail), ('/cron/send_reminder',\
+     ReminderEmail)], debug=True)
